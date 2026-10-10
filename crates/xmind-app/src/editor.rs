@@ -583,6 +583,32 @@ impl Editor {
         }
     }
 
+    /// (字号, 文字色, 填充色) of a topic as currently themed — used to make
+    /// the in-place editor visually match the node.
+    pub fn topic_visual(&self, id: &str) -> (f32, Col, Option<Col>) {
+        let sheet = self.doc.sheet();
+        let theme_id = sheet.theme.clone().unwrap_or_else(|| self.doc.theme.clone());
+        let th = xmind_core::theme::theme_by_id(&theme_id);
+        // depth + level-1 index for branch color
+        let mut level = 0usize;
+        let mut cur = id.to_string();
+        let mut l1_idx: Option<usize> = None;
+        while let Some((parent, idx)) = self.parent_info(&cur) {
+            level += 1;
+            if parent == sheet.root.id && idx < 10_000 {
+                l1_idx = Some(idx);
+            }
+            cur = parent;
+        }
+        let branch = match (&l1_idx, level) {
+            (Some(i), l) if l >= 1 => xmind_core::theme::branch_color(th, *i),
+            _ => th.root_fill,
+        };
+        let style = sheet.find(id).and_then(|t| t.style.as_ref());
+        let res = xmind_core::theme::resolve(th, level, branch, style, false);
+        (res.size, res.text, res.fill)
+    }
+
     // ---------- rename / editing ----------
 
     pub fn start_editing(&mut self, id: &str) {

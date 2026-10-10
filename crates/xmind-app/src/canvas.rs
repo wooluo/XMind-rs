@@ -453,18 +453,32 @@ pub fn show(ui: &mut egui::Ui, ed: &mut Editor, lang: Lang) {
     if let Some((id, buf)) = ed.editing.clone() {
         if let Some(r) = scene.rect_of(&id) {
             let sr = rect_of(&r);
-            let sz = (16.0 * ed.view.zoom).clamp(11.0, 30.0);
+            // 编辑框与节点同款字号/颜色/底色 —— 双击编辑时观感无缝
+            let (size0, text_col, fill_opt) = ed.topic_visual(&id);
+            let sz = (size0 * ed.view.zoom).clamp(9.0, 44.0);
             let edit_rect = ERect::from_min_max(
-                pos2(sr.left() + 4.0, sr.top() + 1.0),
-                pos2(sr.right() - 4.0, sr.bottom() - 1.0),
+                pos2(sr.left() + 2.0, sr.top() + 1.0),
+                pos2(sr.right() - 2.0, sr.bottom() - 1.0),
             );
+            let node_fill = c32(fill_opt.unwrap_or(scene.bg));
             let mut buf2 = buf;
-            let out = ui.put(
-                edit_rect,
-                egui::TextEdit::singleline(&mut buf2)
-                    .font(egui::TextStyle::Monospace)
-                    .desired_width(edit_rect.width()),
-            );
+            let out = ui
+                .allocate_ui_at_rect(edit_rect, |ui| {
+                    egui::Frame::none()
+                        .fill(node_fill)
+                        .inner_margin(egui::Margin::symmetric(4.0, 1.0))
+                        .show(ui, |ui| {
+                            ui.add(
+                                egui::TextEdit::singleline(&mut buf2)
+                                    .font(FontId::proportional(sz))
+                                    .desired_width(f32::INFINITY)
+                                    .text_color(c32(text_col))
+                                    .frame(false),
+                            )
+                        })
+                        .inner
+                })
+                .inner;
             let eid = id.clone();
             ed.editing = Some((eid, buf2));
             if !out.has_focus() && !out.lost_focus() {
