@@ -588,35 +588,28 @@ impl App {
 
     fn outline_row(&mut self, ui: &mut egui::Ui, t: &Topic, depth: usize) {
         let is_sel = self.ed.primary().map(|p| *p == t.id).unwrap_or(false);
-        let mut row = egui::CollapsingHeader::new("")
-            .id_source(&t.id)
-            .default_open(t.expanded)
-            .show(ui, |ui| {
-                for c in &t.children {
-                    self.outline_row(ui, c, depth + 1);
-                }
-            });
-        let _ = &mut row;
-        // custom row rendering (CollapsingHeader provides indent only when open)
-        let _ = depth;
+        let has_children = !t.children.is_empty();
         ui.horizontal(|ui| {
-            ui.add_space(10.0);
-            let txt = if t.children.is_empty() {
-                "·".to_string()
+            ui.add_space(6.0 + depth as f32 * 16.0);
+            let chev = if !has_children {
+                "·"
             } else if t.expanded {
-                "▾".to_string()
+                "▾"
             } else {
-                "▸".to_string()
+                "▸"
             };
-            if ui.small_button(txt).clicked() && !t.children.is_empty() {
-                self.ed.toggle_expand(&t.id);
+            if ui.small_button(chev).clicked() && has_children {
+                let id = t.id.clone();
+                self.ed.toggle_expand(&id);
             }
-            let label = RichText::new(&t.text).size(13.0).color(if is_sel {
-                Color32::from_rgb(29, 122, 243)
-            } else {
-                Color32::from_gray(40)
-            });
-            let resp = ui.add(egui::Button::new(label).frame(false).wrap_mode(egui::TextWrapMode::Truncate));
+            let color = if is_sel { Color32::from_rgb(29, 122, 243) } else { Color32::from_gray(40) };
+            let max_w = ui.available_width() - 34.0;
+            let text = t.text.clone();
+            let galley = ui.ctx().fonts(|f| f.layout(text, egui::FontId::proportional(13.0), color, max_w));
+            let size = egui::vec2(galley.size().x.max(8.0), galley.size().y.max(14.0));
+            let (rect, resp) = ui.allocate_exact_size(size, egui::Sense::click());
+            let p = ui.painter().clone();
+            p.galley(rect.min, galley, Color32::PLACEHOLDER);
             if resp.clicked() {
                 let id = t.id.clone();
                 self.ed.select_topic(&id, false);
@@ -626,6 +619,11 @@ impl App {
                 self.ed.start_editing(&id);
             }
         });
+        if t.expanded {
+            for c in &t.children {
+                self.outline_row(ui, c, depth + 1);
+            }
+        }
     }
 
     // ---------- properties ----------

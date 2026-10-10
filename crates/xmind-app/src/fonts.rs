@@ -69,9 +69,12 @@ pub fn install(ctx: &Context) -> Option<String> {
     fonts
         .font_data
         .insert("sys-cjk".into(), FontData { font: Cow::Owned(sf.bytes), index: sf.index, tweak: Default::default() });
-    for family in [FontFamily::Proportional, FontFamily::Monospace] {
-        fonts.families.entry(family).or_default().push("sys-cjk".into());
-    }
+    // Put the system font FIRST in Proportional so Latin+CJK both come from
+    // it (matches the headless export renderer). egui's font fallback for
+    // proportional text doesn't reliably reach the appended CJK font, but
+    // using it as the primary works.
+    fonts.families.entry(FontFamily::Proportional).or_default().insert(0, "sys-cjk".into());
+    fonts.families.entry(FontFamily::Monospace).or_default().push("sys-cjk".into());
     ctx.set_fonts(fonts);
     Some(sf.family)
 }
