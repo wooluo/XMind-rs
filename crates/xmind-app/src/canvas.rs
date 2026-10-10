@@ -10,13 +10,17 @@ use xmind_core::geo::{flatten_cubic, dist_to_polyline, Rect, V2};
 use xmind_core::marker::Marker;
 use xmind_core::model::{Side, Structure};
 use xmind_core::scene::{HitTarget, Prim, Scene};
-use xmind_core::text::TextMeasurer;
+use xmind_core::text::{FontMetrics, TextMeasurer};
 
 pub struct EguiMeasurer<'a> {
     pub ctx: &'a egui::Context,
 }
 
 impl TextMeasurer for EguiMeasurer<'_> {
+    fn metrics(&self) -> FontMetrics {
+        FontMetrics { ascent: crate::fonts::ascent_ratio(), descent: crate::fonts::descent_ratio() }
+    }
+
     fn line_width(&self, text: &str, size: f32, _bold: bool) -> f32 {
         self.ctx
             .fonts(|f| f.layout_no_wrap(text.to_string(), FontId::proportional(size), Color32::WHITE))
@@ -584,18 +588,24 @@ fn draw_prim(painter: &egui::Painter, prim: &Prim, v: &View, tex: &HashMap<Strin
         Prim::Text { p, text, size, color, bold, italic: _, center } => {
             let pos = w2s(p.x, p.y);
             let sz = size * zoom;
-            let anchor = if *center { Align2::CENTER_BOTTOM } else { Align2::LEFT_BOTTOM };
             let col = c32(*color);
-            // egui anchors the galley bottom edge, which sits one descent
-            // below the glyph baseline — shift down to hit the true baseline
-            // (matches the headless export renderer).
-            let dy = crate::fonts::descent_ratio() * sz;
-            let pos = pos + Vec2::new(0.0, dy);
+            // p.y is the glyph baseline. egui places a galley's baseline at
+            // `top + ascent`, so anchor by the real font ascent — no
+            // bottom-anchor guesswork, pixel-exact like the exporter.
+            let ascent = crate::fonts::ascent_ratio() * sz;
+            let galley = painter
+                .ctx()
+                .fonts(|f| f.layout_no_wrap(text.clone(), FontId::proportional(sz), col));
+            let x = if *center { pos.x - galley.size().x * 0.5 } else { pos.x };
+            let top = pos2(x, pos.y - ascent);
+            painter.galley(top, galley, col);
             if *bold {
                 let off = 0.35 * zoom.max(0.3);
-                painter.text(pos + Vec2::new(off, 0.0), anchor, text, FontId::proportional(sz), col);
+                let galley = painter
+                    .ctx()
+                    .fonts(|f| f.layout_no_wrap(text.clone(), FontId::proportional(sz), col));
+                painter.galley(top + Vec2::new(off, 0.0), galley, col);
             }
-            painter.text(pos, anchor, text, FontId::proportional(sz), col);
         }
         Prim::Tris { tris, color } => {
             for [a, b, c] in tris {

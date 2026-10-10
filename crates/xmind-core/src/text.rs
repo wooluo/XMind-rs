@@ -1,8 +1,26 @@
+/// Vertical font metrics in em units.
+#[derive(Clone, Copy, Debug)]
+pub struct FontMetrics {
+    pub ascent: f32,
+    pub descent: f32,
+}
+
+impl Default for FontMetrics {
+    fn default() -> Self {
+        FontMetrics { ascent: 0.88, descent: 0.12 } // Hiragino-like CJK default
+    }
+}
+
 /// Font-metric abstraction so layout is identical on screen (egui) and in
 /// headless exporters (ab_glyph).
 pub trait TextMeasurer {
     /// Width of a single line of text at the given font size.
     fn line_width(&self, text: &str, size: f32, bold: bool) -> f32;
+
+    /// Vertical metrics of the font (em units).
+    fn metrics(&self) -> FontMetrics {
+        FontMetrics::default()
+    }
 }
 
 /// Line height factor shared by every renderer so vertical rhythm matches.

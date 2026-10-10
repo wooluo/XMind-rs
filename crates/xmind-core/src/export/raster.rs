@@ -5,7 +5,7 @@
 use crate::col::Col;
 use crate::model::Doc;
 use crate::scene::{Prim, Scene};
-use crate::text::TextMeasurer;
+use crate::text::{FontMetrics, TextMeasurer};
 use crate::XRResult;
 use ab_glyph::{Font, FontVec, PxScale, ScaleFont};
 use tiny_skia::{
@@ -15,6 +15,7 @@ use tiny_skia::{
 pub struct FontBook {
     pub family: String,
     font: Option<FontVec>,
+    metrics: FontMetrics,
 }
 
 impl FontBook {
@@ -61,12 +62,13 @@ impl FontBook {
                     };
                     let ok = can('A') && (!require_cjk || can('你'));
                     if ok {
-                        return FontBook { family: want.to_string(), font: Some(f) };
+                        let m = font_metrics_of(&f);
+                        return FontBook { family: want.to_string(), font: Some(f), metrics: m };
                     }
                 }
             }
         }
-        FontBook { family: String::new(), font: None }
+        FontBook { family: String::new(), font: None, metrics: FontMetrics::default() }
     }
 
     pub fn available(&self) -> bool {
@@ -74,7 +76,20 @@ impl FontBook {
     }
 }
 
+fn font_metrics_of(f: &FontVec) -> FontMetrics {
+    use ab_glyph::Font as _;
+    let upm = f.units_per_em().unwrap_or(1000.0);
+    FontMetrics {
+        ascent: (f.ascent_unscaled() / upm).clamp(0.5, 1.2),
+        descent: (f.descent_unscaled() / upm).abs().clamp(0.0, 0.5),
+    }
+}
+
 impl TextMeasurer for FontBook {
+    fn metrics(&self) -> FontMetrics {
+        self.metrics
+    }
+
     fn line_width(&self, text: &str, size: f32, _bold: bool) -> f32 {
         let Some(font) = &self.font else {
             return text.chars().count() as f32 * 0.6 * size;

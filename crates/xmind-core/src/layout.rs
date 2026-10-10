@@ -2,7 +2,7 @@ use crate::col::{Col, WHITE};
 use crate::geo::{cubic, cubic_tangent, dash_polyline, flatten_cubic, Rect, V2};
 use crate::model::{Arrows, Sheet, Side, Structure, Topic};
 use crate::scene::{HitRect, HitTarget, NodeSide, Prim, RelCurve, Scene};
-use crate::text::{line_height, wrap_text, TextMeasurer};
+use crate::text::{line_height, wrap_text, FontMetrics, TextMeasurer};
 use crate::theme::{self, Theme};
 use std::collections::HashMap;
 
@@ -123,8 +123,10 @@ struct Content {
     lines: Vec<String>,
     lh: f32,
     text_w: f32,
-    /// visual ink height of the text block (line-height minus bottom slack)
+    /// total line-box height of the text block: (n-1)*lh + (ascent+descent)*size
     text_ink_h: f32,
+    /// offset of the first baseline from the top of the text block
+    baseline0: f32,
     mk_size: f32,
     mk_w: f32,
     ic_n: bool,
@@ -173,11 +175,14 @@ impl<'a> Layout<'a> {
             .iter()
             .map(|l| self.m.line_width(l, res.size, res.bold))
             .fold(0.0f32, f32::max);
-        let text_h = lines.len() as f32 * lh;
-        // egui/ab_glyph ink of one line spans roughly [0.12, 0.92] * size
-        // around the baseline offset; the rest of each line box is leading
-        // slack. Use ink height so the text is vertically centered in the node.
-        let text_ink_h = (lines.len().saturating_sub(1)) as f32 * lh + res.size * 0.98;
+        // Line box model: first line box = (ascent + descent) * size; extra
+        // lines add one line-height each. First baseline sits `ascent*size`
+        // below the text-top, so glyphs center correctly for CJK (no descent)
+        // and Latin descenders still fit.
+        let m: FontMetrics = self.m.metrics();
+        let text_ink_h = (lines.len().saturating_sub(1)) as f32 * lh + (m.ascent + m.descent) * res.size;
+        let baseline0 = m.ascent * res.size;
+        let _ = lines.len() as f32 * lh;
 
         let mk_size = (res.size * 1.15).clamp(14.0, 20.0);
         let mk_w = if t.markers.is_empty() {
@@ -230,6 +235,7 @@ impl<'a> Layout<'a> {
             lh,
             text_w,
             text_ink_h,
+            baseline0,
             mk_size,
             mk_w,
             ic_n,
@@ -1037,7 +1043,7 @@ impl<'a> Layout<'a> {
         let tx = start_x + c.mk_w + if c.mk_w > 0.0 { 8.0 } else { 0.0 };
         for (i, line) in c.lines.iter().enumerate() {
             scene.prims.push(Prim::Text {
-                p: V2::new(tx, start_y + i as f32 * c.lh + res.size * 0.8),
+                p: V2::new(tx, start_y + i as f32 * c.lh + c.baseline0),
                 text: line.clone(),
                 size: res.size,
                 color: res.text,
