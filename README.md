@@ -59,6 +59,12 @@
 
 ## 快速开始
 
+### 直接下载
+
+[GitHub Release](https://github.com/wooluo/XMind-rs/releases/latest) 提供 macOS（Apple Silicon .app）、Windows x64、Linux x64 预编译包。
+
+### 从源码构建
+
 ```bash
 # GUI（开发构建）
 cargo run -p xmind-app
@@ -67,6 +73,8 @@ cargo run -p xmind-app
 cargo build --release -p xmind-app
 ./target/release/xmind-rs            # 或把二进制加到 /Applications
 ./target/release/xmind-rs 某文件.xmind  # 直接打开文件
+# Linux 构建需要 GTK/图形库依赖：
+#   Debian/Ubuntu: sudo apt install libgtk-3-dev libxkbcommon-dev libwayland-dev
 
 # 命令行（无头转换 / 渲染）
 cargo run -p xmind-cli -- new -o plan.xmind -t project
