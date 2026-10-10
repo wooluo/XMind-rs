@@ -586,6 +586,11 @@ fn draw_prim(painter: &egui::Painter, prim: &Prim, v: &View, tex: &HashMap<Strin
             let sz = size * zoom;
             let anchor = if *center { Align2::CENTER_BOTTOM } else { Align2::LEFT_BOTTOM };
             let col = c32(*color);
+            // egui anchors the galley bottom edge, which sits one descent
+            // below the glyph baseline — shift down to hit the true baseline
+            // (matches the headless export renderer).
+            let dy = crate::fonts::descent_ratio() * sz;
+            let pos = pos + Vec2::new(0.0, dy);
             if *bold {
                 let off = 0.35 * zoom.max(0.3);
                 painter.text(pos + Vec2::new(off, 0.0), anchor, text, FontId::proportional(sz), col);

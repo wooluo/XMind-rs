@@ -62,6 +62,24 @@ fn can_outline(f: &ab_glyph::FontVec) -> bool {
     true
 }
 
+/// Descent/em of the installed system font. egui's galley bottom edge sits
+/// `descent` below the glyph baseline, so painting with a bottom anchor must
+/// shift down by this much to land on the true baseline.
+pub fn descent_ratio() -> f32 {
+    static R: std::sync::OnceLock<f32> = std::sync::OnceLock::new();
+    *R.get_or_init(|| {
+        find_cjk_font()
+            .and_then(|sf| {
+                use ab_glyph::Font as _;
+                ab_glyph::FontVec::try_from_vec_and_index(sf.bytes, sf.index).ok().map(|f| {
+                    let upm = f.units_per_em().unwrap_or(1000.0);
+                    (f.descent_unscaled() / upm).abs().clamp(0.0, 0.5)
+                })
+            })
+            .unwrap_or(0.12)
+    })
+}
+
 /// Install the discovered CJK font as a fallback for proportional + monospace.
 pub fn install(ctx: &Context) -> Option<String> {
     let sf = find_cjk_font()?;
