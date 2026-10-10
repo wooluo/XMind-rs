@@ -209,28 +209,18 @@ impl Topic {
     }
 
     pub fn child_mut(&mut self, id: &str) -> Option<&mut Topic> {
-        for s in self.summaries.iter_mut() {
-            if s.topic.id == id {
-                return Some(&mut s.topic);
-            }
-            if let Some(t) = s.topic.child_mut(id) {
-                return Some(t);
-            }
+        // 1) summary topics attached to self (position trick keeps borrowck happy)
+        if let Some(i) = self.summaries.iter().position(|s| s.topic.id == id) {
+            return Some(&mut self.summaries[i].topic);
         }
-        // 1) direct children / detached
-        let pos = self
-            .children
-            .iter()
-            .chain(self.detached.iter())
-            .position(|c| c.id == id);
-        if let Some(i) = pos {
-            return if i < self.children.len() {
-                self.children.get_mut(i)
-            } else {
-                self.detached.get_mut(i - self.children.len())
-            };
+        // 2) direct children / detached
+        if let Some(i) = self.children.iter().position(|c| c.id == id) {
+            return self.children.get_mut(i);
         }
-        // 2) recurse into subtrees
+        if let Some(i) = self.detached.iter().position(|c| c.id == id) {
+            return self.detached.get_mut(i);
+        }
+        // 3) recurse, one container at a time
         for c in self.children.iter_mut() {
             if let Some(t) = c.child_mut(id) {
                 return Some(t);
@@ -241,11 +231,7 @@ impl Topic {
                 return Some(t);
             }
         }
-        // 3) summary topics
         for s in self.summaries.iter_mut() {
-            if s.topic.id == id {
-                return Some(&mut s.topic);
-            }
             if let Some(t) = s.topic.child_mut(id) {
                 return Some(t);
             }
