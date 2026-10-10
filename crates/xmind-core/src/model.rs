@@ -209,6 +209,14 @@ impl Topic {
     }
 
     pub fn child_mut(&mut self, id: &str) -> Option<&mut Topic> {
+        for s in self.summaries.iter_mut() {
+            if s.topic.id == id {
+                return Some(&mut s.topic);
+            }
+            if let Some(t) = s.topic.child_mut(id) {
+                return Some(t);
+            }
+        }
         // 1) direct children / detached
         let pos = self
             .children
@@ -246,6 +254,14 @@ impl Topic {
     }
 
     pub fn find(&self, id: &str) -> Option<&Topic> {
+        for s in &self.summaries {
+            if s.topic.id == id {
+                return Some(&s.topic);
+            }
+            if let Some(t) = s.topic.find(id) {
+                return Some(t);
+            }
+        }
         for c in self.children.iter().chain(self.detached.iter()) {
             if c.id == id {
                 return Some(c);
@@ -308,24 +324,24 @@ impl Topic {
 
     /// Depth-first walk over children/detached/summary topics (not self).
     pub fn walk<'a>(&'a self, f: &mut impl FnMut(&'a Topic)) {
+        for s in &self.summaries {
+            f(&s.topic);
+            s.topic.walk(f);
+        }
         for c in self.children.iter().chain(self.detached.iter()) {
             f(c);
             c.walk(f);
-            for s in &c.summaries {
-                f(&s.topic);
-                s.topic.walk(f);
-            }
         }
     }
 
     pub fn walk_mut(&mut self, f: &mut dyn FnMut(&mut Topic)) {
+        for s in self.summaries.iter_mut() {
+            f(&mut s.topic);
+            s.topic.walk_mut(f);
+        }
         for c in self.children.iter_mut().chain(self.detached.iter_mut()) {
             f(c);
             c.walk_mut(f);
-            for s in c.summaries.iter_mut() {
-                f(&mut s.topic);
-                s.topic.walk_mut(f);
-            }
         }
     }
 
