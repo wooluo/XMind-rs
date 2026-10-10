@@ -269,6 +269,11 @@ impl Topic {
 
     /// (parent, index in parent.children) — also searches summaries' subtrees.
     pub fn parent_of(&self, id: &str) -> Option<(&Topic, usize)> {
+        for s in &self.summaries {
+            if let Some(p) = s.topic.parent_of(id) {
+                return Some(p);
+            }
+        }
         for (i, c) in self.children.iter().enumerate() {
             if c.id == id {
                 return Some((self, i));

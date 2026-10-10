@@ -608,6 +608,29 @@ impl Editor {
             }
             cur = parent;
         }
+        if level == 0 && sheet.root.id != id {
+            // 概要主题等无常规父级的节点：用树深度估算层级
+            fn depth_of(t: &Topic, id: &str, d: usize) -> Option<usize> {
+                for s in &t.summaries {
+                    if s.topic.id == id {
+                        return Some((d + 2).max(2));
+                    }
+                    if let Some(x) = depth_of(&s.topic, id, d + 2) {
+                        return Some(x);
+                    }
+                }
+                for c in t.children.iter().chain(t.detached.iter()) {
+                    if c.id == id {
+                        return Some(d + 1);
+                    }
+                    if let Some(x) = depth_of(c, id, d + 1) {
+                        return Some(x);
+                    }
+                }
+                None
+            }
+            level = depth_of(&sheet.root, id, 0).unwrap_or(1);
+        }
         let branch = match (&l1_idx, level) {
             (Some(i), l) if l >= 1 => xmind_core::theme::branch_color(th, *i),
             _ => th.root_fill,
@@ -661,9 +684,16 @@ impl Editor {
             return;
         }
         let mut ms = Vec::new();
+        let drill_top = self.drill.last().cloned();
+        let scope = drill_top.and_then(|d| self.doc.sheet().find(&d).map(|r| r.subtree_ids()));
         self.doc.sheet().walk(&mut |t| {
-            if t.text.to_lowercase().contains(&q)
-                || t.note.as_ref().map(|n| n.to_lowercase().contains(&q)).unwrap_or(false)
+            let in_scope = match &scope {
+                Some(ids) => ids.contains(&t.id),
+                None => true,
+            };
+            if in_scope
+                && (t.text.to_lowercase().contains(&q)
+                    || t.note.as_ref().map(|n| n.to_lowercase().contains(&q)).unwrap_or(false))
             {
                 ms.push(t.id.clone());
             }

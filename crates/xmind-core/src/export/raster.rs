@@ -184,8 +184,14 @@ fn draw_prims(
                     paint_path(pm, &path, fill, stroke, scale);
                 }
             }
-            Prim::Text { p, text, size, color, bold, .. } => {
+            Prim::Text { p, text, size, color, bold, center, .. } => {
                 let (x, y) = tr(p.x, p.y);
+                let x = if *center {
+                    let w = book.line_width(text, *size, *bold);
+                    x - w / 2.0 / scale
+                } else {
+                    x
+                };
                 draw_text(pm, book, text, *size, *color, *bold, x * scale, y * scale, scale);
             }
             Prim::Tris { tris, color } => {

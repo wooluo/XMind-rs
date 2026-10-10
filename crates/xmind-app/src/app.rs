@@ -118,6 +118,8 @@ impl App {
 
     fn autosave(&mut self) {
         if !self.ed.dirty {
+            // 干净状态：清掉遗留自动存档，避免下次启动误弹恢复
+            let _ = std::fs::remove_file(self.autosave_path());
             return;
         }
         let p = self.autosave_path();
@@ -154,6 +156,7 @@ impl App {
             self.toast(format!("保存失败: {e}"));
         } else {
             self.toast("已保存");
+            let _ = std::fs::remove_file(self.autosave_path());
             let p = self.ed.path.clone().unwrap();
             self.push_recent(p);
         }
@@ -572,6 +575,10 @@ impl App {
                         self.ed.doc.sheets.remove(i);
                         self.ed.doc.current = self.ed.doc.current.min(self.ed.doc.sheets.len() - 1);
                         self.ed.scene_ver += 1;
+                        self.ed.sel.clear();
+                        self.ed.sel_rel = None;
+                        self.ed.sel_boundary = None;
+                        self.ed.pending_fit = true;
                     }
                     if ui.button("⧉").on_hover_text(tr(self.lang, "dup_sheet")).clicked() {
                         self.ed.commit();
@@ -623,6 +630,12 @@ impl App {
         if t.expanded {
             for c in &t.children {
                 self.outline_row(ui, c, depth + 1);
+            }
+            for c in &t.detached {
+                self.outline_row(ui, c, depth + 1);
+            }
+            for s in &t.summaries {
+                self.outline_row(ui, &s.topic, depth + 1);
             }
         }
     }
@@ -1000,7 +1013,9 @@ impl App {
                             ui.monospace(p.display().to_string());
                             if ui.button(tr(self.lang, "restore")).clicked() {
                                 if self.ed.load(p.clone()).is_ok() {
-                                    self.toast("已恢复自动保存的文件");
+                                    self.ed.path = None;
+                                    self.ed.dirty = true;
+                                    self.toast("已恢复，请用“另存为”保存到正式位置");
                                     self.recovery.clear();
                                 }
                             }

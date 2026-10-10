@@ -373,7 +373,7 @@ pub fn show(ui: &mut egui::Ui, ed: &mut Editor, lang: Lang) {
                 let wr = Rect::new(x0.min(x1), y0.min(y1), (x1 - x0).abs(), (y1 - y0).abs());
                 let mut ids = Vec::new();
                 for (id, r) in &scene.rects {
-                    if r.intersect(&wr) {
+                    if !id.starts_with("sum-") && r.intersect(&wr) {
                         ids.push(id.clone());
                     }
                 }
@@ -522,7 +522,7 @@ pub fn show(ui: &mut egui::Ui, ed: &mut Editor, lang: Lang) {
                 ctx.input_mut(|i| {
                     i.events.retain(|e| {
                         !matches!(e, egui::Event::Key { key: k, pressed: true, .. }
-                            if matches!(k, egui::Key::Tab | egui::Key::Enter))
+                            if matches!(k, egui::Key::Tab | egui::Key::Enter | egui::Key::Space))
                     })
                 });
             }
@@ -691,7 +691,7 @@ fn keyboard(ctx: &egui::Context, ed: &mut Editor) {
     let mut handled_nav = false;
     for ev in events {
         let egui::Event::Key { key, pressed: true, .. } = ev else { continue };
-        if matches!(key, egui::Key::Tab | egui::Key::Enter) {
+        if matches!(key, egui::Key::Tab | egui::Key::Enter | egui::Key::Space) {
             handled_nav = true;
         }
         match key {
@@ -708,7 +708,9 @@ fn keyboard(ctx: &egui::Context, ed: &mut Editor) {
             }
             egui::Key::Enter => {
                 if let Some(id) = ed.primary().cloned() {
-                    if ed.doc.sheet().root.id == id {
+                    let no_parent = ed.parent_info(&id).is_none();
+                    if no_parent {
+                        // 根节点与概要主题：Enter 建子主题
                         if let Some(n) = ed.add_child(&id, "") {
                             ed.select_topic(&n, false);
                             ed.start_editing(&n);
@@ -752,7 +754,7 @@ fn keyboard(ctx: &egui::Context, ed: &mut Editor) {
         ctx.input_mut(|i| {
             i.events.retain(|e| {
                 !matches!(e, egui::Event::Key { key: k, pressed: true, .. }
-                    if matches!(k, egui::Key::Tab | egui::Key::Enter))
+                    if matches!(k, egui::Key::Tab | egui::Key::Enter | egui::Key::Space))
             })
         });
     }
