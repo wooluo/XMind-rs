@@ -1,0 +1,13 @@
+[package]
+name = "xmind-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Headless CLI for xmind-rs (convert / render / info)"
+
+[[bin]]
+name = "xmind-cli"
+path = "src/main.rs"
+
+[dependencies]
+xmind-core = { path = "../xmind-core" }
