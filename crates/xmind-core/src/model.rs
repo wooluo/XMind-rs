@@ -527,6 +527,25 @@ impl Sheet {
         self.root.topic_count()
     }
 
+    /// Delete a whole summary (bracket + summary topic + its subtree) by the
+    /// summary topic's id. Returns true if one was removed.
+    pub fn delete_summary_by_topic(&mut self, tid: &str) -> bool {
+        fn walk(t: &mut Topic, tid: &str) -> bool {
+            let before = t.summaries.len();
+            t.summaries.retain(|s| s.topic.id != tid);
+            if t.summaries.len() != before {
+                return true;
+            }
+            for c in t.children.iter_mut().chain(t.detached.iter_mut()) {
+                if walk(c, tid) {
+                    return true;
+                }
+            }
+            false
+        }
+        walk(&mut self.root, tid)
+    }
+
     /// Delete a topic (not root). Fixes relationships pointing into it.
     pub fn delete_topic(&mut self, id: &str) -> Option<Topic> {
         if self.root.id == id {

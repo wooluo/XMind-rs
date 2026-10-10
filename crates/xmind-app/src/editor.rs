@@ -303,7 +303,10 @@ impl Editor {
             self.commit();
             let ids: Vec<String> = self.sel.clone();
             for id in ids {
-                self.doc.sheet_mut().delete_topic(&id);
+                if self.doc.sheet_mut().delete_topic(&id).is_none() {
+                    // 概要主题：删除整个概要（括号 + 概要主题 + 子树）
+                    self.doc.sheet_mut().delete_summary_by_topic(&id);
+                }
             }
             self.sel.clear();
         } else if let Some(rid) = self.sel_rel.take() {

@@ -266,3 +266,20 @@ fn diag_left_fish_alignment() {
         }
     }
 }
+
+#[test]
+fn summary_delete() {
+    use xmind_core::model::{Sheet, Summary, Topic};
+    let mut sh = Sheet::new("s", "中心");
+    for i in 0..3 {
+        sh.root.insert_child(None, Topic::new(format!("分支{i}")));
+    }
+    sh.root.summaries.push(Summary { id: "sum1".into(), start: 0, end: 1, topic: Topic::new("概要内容") });
+    let tid = sh.root.summaries[0].topic.id.clone();
+    assert!(sh.find(&tid).is_some());
+    assert!(sh.delete_summary_by_topic(&tid));
+    assert!(sh.find(&tid).is_none());
+    assert!(sh.root.summaries.is_empty());
+    assert_eq!(sh.root.children.len(), 3);
+    assert!(!sh.delete_summary_by_topic(&tid)); // 幂等
+}
