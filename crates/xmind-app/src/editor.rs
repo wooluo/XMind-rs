@@ -392,6 +392,7 @@ impl Editor {
         if let Some(t) = self.doc.sheet_mut().find_mut(id) {
             t.structure = st;
         }
+        self.pending_fit = true;
     }
 
     pub fn set_side(&mut self, id: &str, side: Option<Side>) {
@@ -399,6 +400,7 @@ impl Editor {
         if let Some(t) = self.doc.sheet_mut().find_mut(id) {
             t.side = side;
         }
+        self.pending_fit = true;
     }
 
     pub fn add_label(&mut self, id: &str, label: String) {

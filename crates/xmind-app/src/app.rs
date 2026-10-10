@@ -543,6 +543,7 @@ impl App {
                     self.ed.doc.current = i;
                     self.ed.scene_ver += 1;
                     self.ed.sel.clear();
+                    self.ed.pending_fit = true;
                 }
                 if btn.double_clicked() {
                     self.rename_sheet = Some((i, t.clone()));
@@ -904,6 +905,7 @@ impl App {
             if !self.ed.drill.is_empty() && ui.button(tr(self.lang, "drill_exit")).clicked() {
                 self.ed.drill.pop();
                 self.ed.scene_ver += 1;
+                self.ed.pending_fit = true;
             }
             if !is_root && ui.button(tr(self.lang, "delete")).clicked() {
                 self.ed.delete_selected();

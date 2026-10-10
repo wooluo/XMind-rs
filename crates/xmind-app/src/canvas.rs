@@ -738,6 +738,7 @@ fn keyboard(ctx: &egui::Context, ed: &mut Editor) {
                 } else if !ed.drill.is_empty() {
                     ed.drill.pop();
                     ed.scene_ver += 1;
+                    ed.pending_fit = true;
                 } else if ed.find.take().is_some() {
                 } else {
                     ed.sel.clear();
@@ -983,7 +984,7 @@ fn context_menu(ui: &mut egui::Ui, ed: &mut Editor, lang: Lang) {
     if ui.button(tr(lang, "drill")).clicked() {
         ed.drill.push(id.clone());
         ed.scene_ver += 1;
-        ed.view = crate::editor::View::new();
+        ed.pending_fit = true;
         ui.close_menu();
     }
 }

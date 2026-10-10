@@ -229,3 +229,40 @@ fn glyph_render_probe() {
     println!("dark pixels: {dark}, min_r={min_r}, uniq_r={:?}", uniq.into_iter().take(6).collect::<Vec<_>>());
     assert!(dark > 30, "text not rendered: {dark} dark pixels");
 }
+
+#[test]
+fn diag_left_fish_alignment() {
+    use xmind_core::text::MockMeasurer;
+    let mk = |st: Structure| {
+        let mut sh = Sheet::new("s", "中心主题");
+        sh.root.structure = Some(st);
+        for name in ["分支甲", "分支乙"] {
+            let mut c = Topic::new(name);
+            c.insert_child(None, Topic::new("子项一"));
+            c.insert_child(None, Topic::new("子项二"));
+            sh.root.insert_child(None, c);
+        }
+        sh
+    };
+    for st in [Structure::LogicLeft, Structure::Fishbone] {
+        let sh = mk(st);
+        let book = xmind_core::export::raster::FontBook::load();
+        let scene = xmind_core::layout::build_scene(&sh, "classic-blue", &book, None);
+        println!("== {st:?} (FontBook) ==");
+        for (id, r) in &scene.rects {
+            if let Some((s, e)) = scene.node_prims.get(id.as_str()) {
+                let mut xmin = f32::MAX; let mut xmax = f32::MIN;
+                for p in &scene.prims[*s..*e] {
+                    if let xmind_core::scene::Prim::Text { p, .. } = p {
+                        xmin = xmin.min(p.x); xmax = xmax.max(p.x);
+                    }
+                }
+                if xmin <= xmax {
+                    let text = sh.find(id).map(|t| t.text.clone()).unwrap_or_default();
+                    println!("  {text}: rect.x=[{:.0},{:.0}] text.x=[{:.0},~{:.0}] inside={}",
+                        r.x, r.right(), xmin, xmax, xmin >= r.x - 1.0 && xmax <= r.right() + 60.0);
+                }
+            }
+        }
+    }
+}
