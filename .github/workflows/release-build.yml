@@ -1,0 +1,105 @@
+name: release-build
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "要附加产物的 Release tag"
+        required: true
+        default: v0.1.0
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            package: macOS-arm64
+          - os: windows-latest
+            package: Windows-x86_64
+          - os: ubuntu-22.04
+            package: Linux-x86_64
+    runs-on: ${{ matrix.os }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux GUI deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libxkbcommon-dev libwayland-dev
+
+      - name: Build
+        run: cargo build --release --locked -p xmind-app -p xmind-cli
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          VER="${TAG#v}"
+          mkdir -p "XMind-RS.app/Contents/MacOS" pkg
+          cp target/release/xmind-rs "XMind-RS.app/Contents/MacOS/xmind-rs"
+          cat > "XMind-RS.app/Contents/Info.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+          	<key>CFBundleName</key><string>XMind-RS</string>
+          	<key>CFBundleDisplayName</key><string>XMind-RS</string>
+          	<key>CFBundleIdentifier</key><string>com.wooluo.xmind-rs</string>
+          	<key>CFBundleVersion</key><string>${VER}</string>
+          	<key>CFBundleShortVersionString</key><string>${VER}</string>
+          	<key>CFBundleExecutable</key><string>xmind-rs</string>
+          	<key>CFBundlePackageType</key><string>APPL</string>
+          	<key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+          	<key>LSMinimumSystemVersion</key><string>11.0</string>
+          	<key>NSHighResolutionCapable</key><true/>
+          </dict>
+          </plist>
+          PLIST
+          ditto -c -k --keepParent XMind-RS.app "XMind-RS-${TAG}-${{ matrix.package }}.zip"
+          mkdir -p cli/samples
+          cp target/release/xmind-cli cli/
+          cp samples/*.xmind cli/samples/
+          tar -czf "xmind-cli-${TAG}-${{ matrix.package }}.tar.gz" -C cli xmind-cli samples
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          mkdir pkg
+          cp target/release/xmind-rs.exe target/release/xmind-cli.exe pkg/
+          7z a -tzip "XMind-RS-${TAG}-${{ matrix.package }}.zip" ./pkg/*
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          mkdir -p pkg/samples
+          cp target/release/xmind-rs target/release/xmind-cli pkg/
+          cp samples/*.xmind pkg/samples/
+          tar -czf "XMind-RS-${TAG}-${{ matrix.package }}.tar.gz" -C pkg xmind-rs xmind-cli samples
+
+      - name: Checksums
+        shell: bash
+        run: |
+          for f in XMind-RS-*.zip XMind-RS-*.tar.gz xmind-cli-*.tar.gz; do
+            [ -f "$f" ] && sha256sum "$f" > "$f.sha256"
+          done
+
+      - name: Upload to release
+        shell: bash
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          gh release upload "$TAG" XMind-RS-*.zip XMind-RS-*.tar.gz xmind-cli-*.tar.gz *.sha256 --clobber -R "${{ github.repository }}"
