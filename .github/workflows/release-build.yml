@@ -70,6 +70,7 @@ jobs:
           </dict>
           </plist>
           PLIST
+          codesign --force --deep -s - "XMind-RS.app"
           ditto -c -k --keepParent XMind-RS.app "XMind-RS-${TAG}-${{ matrix.package }}.zip"
           mkdir -p cli/samples
           cp target/release/xmind-cli cli/
