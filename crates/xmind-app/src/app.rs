@@ -325,11 +325,9 @@ impl App {
 
     fn toolbar(&mut self, ui: &mut egui::Ui, _ctx: &Context) {
         let b = |ui: &mut egui::Ui, label: &str| ui.add_sized([0.0, 24.0], egui::Button::new(RichText::new(label).size(13.0)));
-        if b(ui, tr(self.lang, "file")).clicked() {
-            ui.menu_button("▾", |ui| {
-                self.file_menu(ui);
-            });
-        }
+        ui.menu_button(tr(self.lang, "file"), |ui| {
+            self.file_menu(ui);
+        });
         ui.separator();
         if b(ui, tr(self.lang, "new")).clicked() {
             self.show_new = true;
@@ -374,23 +372,22 @@ impl App {
             }
         }
         ui.separator();
-        if b(ui, tr(self.lang, "theme")).clicked() {
-            ui.menu_button("▾", |ui| {
-                for th in THEMES {
-                    ui.horizontal(|ui| {
-                        if ui.button(th.name).clicked() {
-                            self.ed.commit();
-                            let cur = self.ed.doc.current;
-                            self.ed.doc.sheets[cur].theme = Some(th.id.to_string());
-                            self.ed.scene_ver += 1;
-                        }
-                        for c in th.palette.iter().take(5) {
-                            ui.add_sized([10.0, 10.0], egui::Button::new(" ").fill(Color32::from_rgb(c.0, c.1, c.2)));
-                        }
-                    });
-                }
-            });
-        }
+        ui.menu_button(tr(self.lang, "theme"), |ui| {
+            for th in THEMES {
+                ui.horizontal(|ui| {
+                    if ui.button(th.name).clicked() {
+                        self.ed.commit();
+                        let cur = self.ed.doc.current;
+                        self.ed.doc.sheets[cur].theme = Some(th.id.to_string());
+                        self.ed.scene_ver += 1;
+                        ui.close_menu();
+                    }
+                    for c in th.palette.iter().take(5) {
+                        ui.add_sized([10.0, 10.0], egui::Button::new(" ").fill(Color32::from_rgb(c.0, c.1, c.2)));
+                    }
+                });
+            }
+        });
         ui.separator();
         let ol = if self.outline_visible { "☰◉" } else { "☰" };
         if b(ui, ol).on_hover_text(tr(self.lang, "outline")).clicked() {

@@ -123,6 +123,8 @@ struct Content {
     lines: Vec<String>,
     lh: f32,
     text_w: f32,
+    /// visual ink height of the text block (line-height minus bottom slack)
+    text_ink_h: f32,
     mk_size: f32,
     mk_w: f32,
     ic_n: bool,
@@ -172,6 +174,10 @@ impl<'a> Layout<'a> {
             .map(|l| self.m.line_width(l, res.size, res.bold))
             .fold(0.0f32, f32::max);
         let text_h = lines.len() as f32 * lh;
+        // egui/ab_glyph ink of one line spans roughly [0.12, 0.92] * size
+        // around the baseline offset; the rest of each line box is leading
+        // slack. Use ink height so the text is vertically centered in the node.
+        let text_ink_h = (lines.len().saturating_sub(1)) as f32 * lh + res.size * 0.98;
 
         let mk_size = (res.size * 1.15).clamp(14.0, 20.0);
         let mk_w = if t.markers.is_empty() {
@@ -208,7 +214,7 @@ impl<'a> Layout<'a> {
 
         let row_w = mk_w + mk_gap + text_w + icons_gap + icons_w;
         let inner_w = row_w.max(labels_w).max(img_wh.map(|(w, _)| w).unwrap_or(0.0));
-        let mut inner_h = text_h + if has_labels { 26.0 } else { 0.0 };
+        let mut inner_h = text_ink_h + if has_labels { 26.0 } else { 0.0 };
         if let Some((_, ih)) = img_wh {
             inner_h += ih + 4.0;
         }
@@ -223,6 +229,7 @@ impl<'a> Layout<'a> {
             lines,
             lh,
             text_w,
+            text_ink_h,
             mk_size,
             mk_w,
             ic_n,
@@ -1017,7 +1024,7 @@ impl<'a> Layout<'a> {
             + (if c.ic_n { 20.0 } else { 0.0 }) + (if c.ic_l { 20.0 } else { 0.0 });
         let start_x = r.cx() - row_w / 2.0;
         let start_y = r.y + c.py + c.img_wh.map(|(_, h)| h + 4.0).unwrap_or(0.0);
-        let text_h = c.lines.len() as f32 * c.lh;
+        let text_h = c.text_ink_h;
         if !t.markers.is_empty() {
             let my = start_y + text_h / 2.0;
             for (i, mk) in t.markers.iter().enumerate() {

@@ -94,9 +94,11 @@ jobs:
       - name: Checksums
         shell: bash
         run: |
+          shopt -s nullglob
           for f in XMind-RS-*.zip XMind-RS-*.tar.gz xmind-cli-*.tar.gz; do
-            [ -f "$f" ] && sha256sum "$f" > "$f.sha256"
+            sha256sum "$f" > "$f.sha256"
           done
+          exit 0
 
       - name: Upload to release
         shell: bash
