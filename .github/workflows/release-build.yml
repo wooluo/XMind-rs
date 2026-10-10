@@ -47,8 +47,9 @@ jobs:
         run: |
           TAG="${{ github.event.inputs.tag || github.ref_name }}"
           VER="${TAG#v}"
-          mkdir -p "XMind-RS.app/Contents/MacOS" pkg
+          mkdir -p "XMind-RS.app/Contents/MacOS" "XMind-RS.app/Contents/Resources" pkg
           cp target/release/xmind-rs "XMind-RS.app/Contents/MacOS/xmind-rs"
+          cp crates/xmind-app/assets/AppIcon.icns "XMind-RS.app/Contents/Resources/AppIcon.icns"
           cat > "XMind-RS.app/Contents/Info.plist" <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -61,6 +62,8 @@ jobs:
           	<key>CFBundleShortVersionString</key><string>${VER}</string>
           	<key>CFBundleExecutable</key><string>xmind-rs</string>
           	<key>CFBundlePackageType</key><string>APPL</string>
+          	<key>CFBundleIconFile</key><string>AppIcon</string>
+          	<key>CFBundleIconName</key><string>AppIcon</string>
           	<key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
           	<key>LSMinimumSystemVersion</key><string>11.0</string>
           	<key>NSHighResolutionCapable</key><true/>

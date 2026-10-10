@@ -15,11 +15,13 @@ fn main() -> eframe::Result {
         .map(std::path::PathBuf::from)
         .filter(|p| p.exists());
 
+    let icon = load_icon();
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1380.0, 880.0])
             .with_min_inner_size([960.0, 620.0])
-            .with_title("XMind-RS"),
+            .with_title("XMind-RS")
+            .with_icon(icon),
         ..Default::default()
     };
 
@@ -38,6 +40,18 @@ fn main() -> eframe::Result {
 }
 
 fn egui_extras_fix(_cc: &eframe::CreationContext) {}
+
+fn load_icon() -> egui::IconData {
+    const PNG: &[u8] = include_bytes!("../assets/icon_256.png");
+    match image::load_from_memory(PNG) {
+        Ok(img) => {
+            let rgba = img.to_rgba8();
+            let (w, h) = rgba.dimensions();
+            egui::IconData { width: w, height: h, rgba: rgba.into_raw() }
+        }
+        Err(_) => egui::IconData::default(),
+    }
+}
 
 struct FontTest {
     frames: u32,
