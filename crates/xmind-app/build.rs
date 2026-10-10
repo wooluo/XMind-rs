@@ -4,8 +4,7 @@ fn main() {
 
 #[cfg(target_os = "windows")]
 fn embed_icon() {
-    let icon = std::path::Path::new("assets/icon.ico");
-    if let Err(e) = winresource::WindowsResource::new().set_icon_with_id(icon, "1").compile() {
+    if let Err(e) = winresource::WindowsResource::new().set_icon_with_id("assets/icon.ico", "1").compile() {
         println!("cargo:warning=failed to embed icon: {e}");
     }
     println!("cargo:rerun-if-changed=assets/icon.ico");
