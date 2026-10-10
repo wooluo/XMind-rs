@@ -84,11 +84,13 @@ pub struct Editor {
     pub drag_last: (f32, f32),
     pub drag_moved: bool,
     pub scene: Option<Scene>,
-    pub scene_key: (u64, usize, String, String), // (ver, sheet idx, drill top, edit buf)
+    pub scene_key: (u64, usize, String, String, String), // (ver, sheet, drill, edit buf, theme)
     pub scene_ver: u64,
     pub scene_edit_buf: String,
     pub tex_cache: HashMap<String, egui::TextureHandle>,
     pub toast: Option<(String, f64)>,
+    /// 切主题/画布等大变更后，下一帧自动“适应画布”重新取景
+    pub pending_fit: bool,
 }
 
 impl Editor {
@@ -114,11 +116,12 @@ impl Editor {
             drag_last: (0.0, 0.0),
             drag_moved: false,
             scene: None,
-            scene_key: (0, 0, String::new(), String::new()),
+            scene_key: (0, 0, String::new(), String::new(), String::new()),
             scene_ver: 1,
             scene_edit_buf: String::new(),
             tex_cache: HashMap::new(),
             toast: None,
+            pending_fit: false,
         }
     }
 

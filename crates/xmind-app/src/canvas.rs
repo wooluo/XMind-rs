@@ -95,7 +95,7 @@ pub fn show(ui: &mut egui::Ui, ed: &mut Editor, lang: Lang) {
     let theme_id = ed.doc.sheet().theme.clone().unwrap_or_else(|| ed.doc.theme.clone());
     let drill_top = ed.drill.last().cloned().unwrap_or_default();
     let edit_buf = ed.editing.as_ref().map(|(_, b)| b.clone()).unwrap_or_default();
-    let key = (ed.scene_ver, ed.doc.current, drill_top, edit_buf);
+    let key = (ed.scene_ver, ed.doc.current, drill_top, edit_buf, theme_id.clone());
     if ed.scene.is_none() || ed.scene_key != key {
         let measurer = EguiMeasurer { ctx: &ctx };
         let sheet = ed.doc.sheet();
@@ -126,6 +126,18 @@ pub fn show(ui: &mut egui::Ui, ed: &mut Editor, lang: Lang) {
                 ed.tex_cache.insert(k, handle);
             }
         }
+    }
+    // 大变更（如切换主题）后重新取景，避免视角留在旧坐标显得混乱
+    if ed.pending_fit {
+        if let Some(sc) = &ed.scene {
+            let b = sc.bounds;
+            if b.w > 1.0 && b.h > 1.0 {
+                let z = ((rect.width() - 40.0) / b.w).min((rect.height() - 40.0) / b.h).clamp(0.15, 1.6);
+                ed.view.zoom = z;
+                ed.view.center_on((rect.width(), rect.height()), b, None);
+            }
+        }
+        ed.pending_fit = false;
     }
     let mut scene_owned = std::mem::take(&mut ed.scene).expect("scene");
     let scene = &scene_owned;
