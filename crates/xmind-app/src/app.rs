@@ -815,8 +815,9 @@ impl App {
             let mut inp = self.label_input.clone();
             let r = ui.add(egui::TextEdit::singleline(&mut inp).desired_width(140.0).hint_text("新标签…"));
             self.label_input = inp;
-            let add = r.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
-            if ui.small_button("＋").clicked() || add {
+            let add = ui.input(|i| i.key_pressed(egui::Key::Enter)) && (r.has_focus() || r.lost_focus());
+            let blur_add = r.lost_focus();
+            if ui.small_button("＋").clicked() || add || blur_add {
                 let l = self.label_input.trim().to_string();
                 if !l.is_empty() {
                     self.ed.add_label(&id, l);

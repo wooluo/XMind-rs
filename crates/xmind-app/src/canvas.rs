@@ -463,12 +463,13 @@ pub fn show(ui: &mut egui::Ui, ed: &mut Editor, lang: Lang) {
                 edit_rect,
                 egui::TextEdit::singleline(&mut buf2)
                     .font(egui::TextStyle::Monospace)
-                    .desired_width(edit_rect.width())
-                    .lock_focus(true),
+                    .desired_width(edit_rect.width()),
             );
             let eid = id.clone();
             ed.editing = Some((eid, buf2));
-            out.request_focus();
+            if !out.has_focus() && !out.lost_focus() {
+                out.request_focus();
+            }
             let (enter, esc, tab) = ctx.input(|i| {
                 (
                     i.key_pressed(egui::Key::Enter),
@@ -476,9 +477,7 @@ pub fn show(ui: &mut egui::Ui, ed: &mut Editor, lang: Lang) {
                     i.key_pressed(egui::Key::Tab),
                 )
             });
-            if enter {
-                ed.commit_editing();
-            } else if esc {
+            if esc {
                 ed.cancel_editing();
             } else if tab {
                 ed.commit_editing();
@@ -486,6 +485,11 @@ pub fn show(ui: &mut egui::Ui, ed: &mut Editor, lang: Lang) {
                     ed.select_topic(&n, false);
                     ed.start_editing(&n);
                 }
+            } else if enter {
+                ed.commit_editing();
+            } else if out.lost_focus() {
+                // 点击其他地方 = 确认输入（Tab 会转移焦点，已在上面先处理）
+                ed.commit_editing();
             }
         }
     }
