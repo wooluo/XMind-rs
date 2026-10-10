@@ -505,6 +505,15 @@ pub fn show(ui: &mut egui::Ui, ed: &mut Editor, lang: Lang) {
                 // 点击其他地方 = 确认输入（Tab 会转移焦点，已在上面先处理）
                 ed.commit_editing();
             }
+            // Tab/Enter 由我们处理，吃掉事件避免 egui 把焦点切到菜单/工具栏
+            if tab || enter {
+                ctx.input_mut(|i| {
+                    i.events.retain(|e| {
+                        !matches!(e, egui::Event::Key { key: k, pressed: true, .. }
+                            if matches!(k, egui::Key::Tab | egui::Key::Enter))
+                    })
+                });
+            }
         }
     }
 
@@ -667,8 +676,12 @@ fn keyboard(ctx: &egui::Context, ed: &mut Editor) {
     }
 
     let events: Vec<egui::Event> = ctx.input(|i| i.events.clone());
+    let mut handled_nav = false;
     for ev in events {
         let egui::Event::Key { key, pressed: true, .. } = ev else { continue };
+        if matches!(key, egui::Key::Tab | egui::Key::Enter) {
+            handled_nav = true;
+        }
         match key {
             egui::Key::Tab => {
                 if let Some(id) = ed.primary().cloned() {
@@ -720,6 +733,15 @@ fn keyboard(ctx: &egui::Context, ed: &mut Editor) {
             }
             _ => {}
         }
+    }
+    if handled_nav {
+        // 阻止 egui 用 Tab/Enter 在工具栏按钮间移动焦点
+        ctx.input_mut(|i| {
+            i.events.retain(|e| {
+                !matches!(e, egui::Event::Key { key: k, pressed: true, .. }
+                    if matches!(k, egui::Key::Tab | egui::Key::Enter))
+            })
+        });
     }
 }
 
