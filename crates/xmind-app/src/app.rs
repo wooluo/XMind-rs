@@ -407,6 +407,9 @@ impl App {
         if b(ui, tr(self.lang, "help")).clicked() {
             self.show_help = true;
         }
+        if b(ui, "ⓘ").on_hover_text(tr(self.lang, "about")).clicked() {
+            self.show_about = true;
+        }
     }
 
     fn file_menu(&mut self, ui: &mut egui::Ui) {
@@ -970,11 +973,46 @@ impl App {
                 .open(&mut open)
                 .resizable(false)
                 .show(ctx, |ui| {
-                    ui.label(format!("XMind-RS v{}", env!("CARGO_PKG_VERSION")));
-                    ui.label("开源思维导图 · 完全本地运行 · 无账号 · 无订阅 · 无遥测");
-                    ui.label("与 .xmind 文件格式互通（XMind Zen / 2020+，可读 XMind 8）");
-                    ui.label("MIT License · Rust + egui");
-                    ui.hyperlink_to("功能与格式说明 → README.md", "https://github.com/");
+                    ui.set_min_width(380.0);
+                    ui.vertical_centered(|ui| {
+                        ui.add_space(6.0);
+                        ui.label(egui::RichText::new("XMind-RS").size(24.0).strong());
+                        ui.label(
+                            egui::RichText::new(format!("版本 v{}", env!("CARGO_PKG_VERSION")))
+                                .size(13.0)
+                                .color(Color32::from_gray(110)),
+                        );
+                        ui.add_space(8.0);
+                    });
+                    ui.separator();
+                    egui::Grid::new("about-grid")
+                        .num_columns(2)
+                        .spacing([16.0, 7.0])
+                        .show(ui, |ui| {
+                            ui.label("作者");
+                            ui.hyperlink_to("wooluo", "https://github.com/wooluo");
+                            ui.end_row();
+                            ui.label("GitHub 仓库");
+                            ui.hyperlink_to("github.com/wooluo/XMind-rs", "https://github.com/wooluo/XMind-rs");
+                            ui.end_row();
+                            ui.label("发布下载");
+                            ui.hyperlink_to("Releases", "https://github.com/wooluo/XMind-rs/releases/latest");
+                            ui.end_row();
+                            ui.label("问题反馈");
+                            ui.hyperlink_to("Issues", "https://github.com/wooluo/XMind-rs/issues");
+                            ui.end_row();
+                            ui.label("开源协议");
+                            ui.label("MIT License");
+                            ui.end_row();
+                        });
+                    ui.separator();
+                    ui.label(
+                        egui::RichText::new(
+                            "开源思维导图 · 完全本地运行 · 无账号 · 无订阅 · 无遥测\n与 .xmind 文件格式互通（XMind Zen / 2020+，可读 XMind 8）\n与 XMind Ltd. 无关联 · Rust + egui",
+                        )
+                        .size(12.0)
+                        .color(Color32::from_gray(100)),
+                    );
                 });
             self.show_about = open;
         }
