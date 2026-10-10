@@ -4525,7 +4525,7 @@ checksum = "b9cc00251562a284751c9973bace760d86c0276c471b4be569fe6b068ee97a56"
 
 [[package]]
 name = "xmind-app"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "ab_glyph",
  "dirs",
@@ -4542,14 +4542,14 @@ dependencies = [
 
 [[package]]
 name = "xmind-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "xmind-core",
 ]
 
 [[package]]
 name = "xmind-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "ab_glyph",
  "chrono",
